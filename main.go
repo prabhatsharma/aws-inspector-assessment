@@ -32,7 +32,7 @@ func HandleRequest(ctx context.Context, cEvent events.CloudWatchEvent) (string, 
 	time.Sleep(60 * time.Second) // sleep for 60 seconds allowing instance to start
 	log.Println("60 seconds sleep to allow ec2 to initialize complete")
 
-	helper.Begin(&detail.InstanceID)
+	helper.Begin(detail.InstanceID)
 	time.Sleep(60 * time.Second) // sleep for 60 seconds allowing scanning to begin
 	helper.SetTag(&detail.InstanceID, "false")
 

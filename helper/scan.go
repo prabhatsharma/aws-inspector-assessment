@@ -3,6 +3,7 @@ package helper
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -35,11 +36,11 @@ func createResourceGroup(svc inspector.Inspector) string {
 	return *rg.ResourceGroupArn
 }
 
-func createAssessmentTarget(rgArn string, svc inspector.Inspector) string {
+func createAssessmentTarget(rgArn string, svc inspector.Inspector, InstanceID string) string {
 	// 2. Create assessment target
 	log.Println("2. Assessment target creation started")
 	ati := &inspector.CreateAssessmentTargetInput{
-		AssessmentTargetName: aws.String("ExampleAssessmentTarget"),
+		AssessmentTargetName: aws.String(InstanceID + "_AssessmentTarget_" + time.Now().Format("2006-01-02_15.04.05")),
 		ResourceGroupArn:     &rgArn,
 	}
 
@@ -50,8 +51,6 @@ func createAssessmentTarget(rgArn string, svc inspector.Inspector) string {
 	}
 
 	return *at.AssessmentTargetArn
-
-	// fmt.Println("\nAssessment target: ", *at.AssessmentTargetArn)
 }
 
 func getRulesPackages(svc inspector.Inspector) *inspector.ListRulesPackagesOutput {
@@ -67,16 +66,16 @@ func getRulesPackages(svc inspector.Inspector) *inspector.ListRulesPackagesOutpu
 	return rp
 }
 
-func createAssessmentTemplate(at string, rp *inspector.ListRulesPackagesOutput, svc inspector.Inspector) *inspector.CreateAssessmentTemplateOutput {
+func createAssessmentTemplate(at string, rp *inspector.ListRulesPackagesOutput, svc inspector.Inspector, InstanceID string) *inspector.CreateAssessmentTemplateOutput {
 	atli := &inspector.CreateAssessmentTemplateInput{
 		AssessmentTargetArn:    aws.String(at),
-		AssessmentTemplateName: aws.String("ExampleAssessmentTemplate"),
+		AssessmentTemplateName: aws.String(InstanceID + "_AssessmentTemplate_" + time.Now().Format("2006-01-02_15.04.05")),
 		DurationInSeconds:      aws.Int64(3600),
 		RulesPackageArns:       rp.RulesPackageArns,
 		UserAttributesForFindings: []*inspector.Attribute{
 			{
-				Key:   aws.String("Example"),
-				Value: aws.String("example"),
+				Key:   aws.String("inspection-type"),
+				Value: aws.String("on-launch"),
 			},
 		},
 	}
@@ -90,9 +89,9 @@ func createAssessmentTemplate(at string, rp *inspector.ListRulesPackagesOutput, 
 	return atl
 }
 
-func startRun(atl *inspector.CreateAssessmentTemplateOutput, svc inspector.Inspector) *inspector.StartAssessmentRunOutput {
+func startRun(atl *inspector.CreateAssessmentTemplateOutput, svc inspector.Inspector, InstanceID string) *inspector.StartAssessmentRunOutput {
 	ari := &inspector.StartAssessmentRunInput{
-		AssessmentRunName:     aws.String("examplerun"),
+		AssessmentRunName:     aws.String(InstanceID + "_Run_" + time.Now().Format("2006-01-02_15.04.05")),
 		AssessmentTemplateArn: aws.String(*atl.AssessmentTemplateArn),
 	}
 
@@ -127,18 +126,17 @@ func SetTag(InstanceID *string, tag string) bool {
 }
 
 // Begin will start entire execution
-func Begin(InstanceID *string) {
+func Begin(InstanceID string) {
 	sess, _ := session.NewSession()
-	svc := inspector.New(sess, &aws.Config{
-		Region: aws.String("us-west-2"),
-	})
+
+	svc := inspector.New(sess)
 
 	// 1. create Resource Group
 	rgArn := createResourceGroup(*svc)
 	fmt.Println("Resource group: ", rgArn)
 
 	// 2. create Assessment Target
-	at := createAssessmentTarget(rgArn, *svc)
+	at := createAssessmentTarget(rgArn, *svc, InstanceID)
 	fmt.Println("\nAssessment target: ", at)
 
 	// 3. create rules package input
@@ -146,12 +144,10 @@ func Begin(InstanceID *string) {
 	fmt.Println("Rulespackages ARNs:", rp)
 
 	// 4. create assessment template
-	atl := createAssessmentTemplate(at, rp, *svc)
+	atl := createAssessmentTemplate(at, rp, *svc, InstanceID)
 	fmt.Println("AssessmentTemplateArn: ", *atl.AssessmentTemplateArn)
 
 	// 5. start assessment template run
-	ar := startRun(atl, *svc)
-
-	fmt.Println(ar)
+	startRun(atl, *svc, InstanceID)
 
 }
