@@ -3,6 +3,7 @@ package helper
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -54,6 +55,7 @@ func createAssessmentTarget(rgArn string, svc inspector.Inspector, InstanceID st
 }
 
 func getRulesPackages(svc inspector.Inspector) *inspector.ListRulesPackagesOutput {
+	// 3. create rules package input
 	rpi := &inspector.ListRulesPackagesInput{
 		MaxResults: aws.Int64(123),
 	}
@@ -67,6 +69,7 @@ func getRulesPackages(svc inspector.Inspector) *inspector.ListRulesPackagesOutpu
 }
 
 func createAssessmentTemplate(at string, rp *inspector.ListRulesPackagesOutput, svc inspector.Inspector, InstanceID string) *inspector.CreateAssessmentTemplateOutput {
+	// 4. create assessment template
 	atli := &inspector.CreateAssessmentTemplateInput{
 		AssessmentTargetArn:    aws.String(at),
 		AssessmentTemplateName: aws.String(InstanceID + "_AssessmentTemplate_" + time.Now().Format("2006-01-02_15.04.05")),
@@ -89,7 +92,24 @@ func createAssessmentTemplate(at string, rp *inspector.ListRulesPackagesOutput, 
 	return atl
 }
 
+func subscribeToEvent(svc inspector.Inspector, resourceArn string, topicArn string) (subscribeResponse string) {
+	// 5. Subscribe to event - ASSESSMENT_RUN_STARTED
+	steInput := &inspector.SubscribeToEventInput{
+		Event:       aws.String("ASSESSMENT_RUN_STARTED"),
+		ResourceArn: aws.String(resourceArn),
+		TopicArn:    aws.String(topicArn),
+	}
+
+	result, err := svc.SubscribeToEvent(steInput)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return result.String()
+}
+
 func startRun(atl *inspector.CreateAssessmentTemplateOutput, svc inspector.Inspector, InstanceID string) *inspector.StartAssessmentRunOutput {
+	// 6. start assessment template run
 	ari := &inspector.StartAssessmentRunInput{
 		AssessmentRunName:     aws.String(InstanceID + "_Run_" + time.Now().Format("2006-01-02_15.04.05")),
 		AssessmentTemplateArn: aws.String(*atl.AssessmentTemplateArn),
@@ -147,7 +167,12 @@ func Begin(InstanceID string) {
 	atl := createAssessmentTemplate(at, rp, *svc, InstanceID)
 	fmt.Println("AssessmentTemplateArn: ", *atl.AssessmentTemplateArn)
 
-	// 5. start assessment template run
+	// 5. Subscribe to event - ASSESSMENT_RUN_COMPLETED
+	topicArn := os.Getenv("TOPICARN")
+	arc := subscribeToEvent(*svc, *atl.AssessmentTemplateArn, topicArn)
+	fmt.Println("Response to SubscribeEvent: ", arc)
+
+	// 6. start assessment template run
 	startRun(atl, *svc, InstanceID)
 
 }
