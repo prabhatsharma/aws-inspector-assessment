@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo '--- starting build ---'
-go build main.go
+env GOOS=linux go build main.go
 echo '--- build complete ---'
 
 echo '--- building archive ---'
