@@ -29,6 +29,7 @@ Resources:
               - inspector:CreateResourceGroup
               - inspector:ListRulesPackages
               - inspector:StartAssessmentRun
+              - inspector:SubscribeToEvent
             Effect: Allow
             Resource: "*"
           - Sid: Stmt345673445436
@@ -99,3 +100,20 @@ Resources:
         Fn::GetAtt:
         - cloudwatchEvent
         - Arn
+  SNSPolicy:    
+    Type: "AWS::SNS::TopicPolicy"
+    Properties: 
+      PolicyDocument: 
+        Id: Policy1528730613045
+        Version: '2012-10-17'
+        Statement:
+        - Sid: Stmt1528730610837
+          Action:
+          - sns:Publish
+          Effect: Allow
+          Resource:
+            Ref: TOPICARN
+          Principal:
+            AWS: '758058086616' # inspector account
+      Topics:
+      - Ref: TOPICARN

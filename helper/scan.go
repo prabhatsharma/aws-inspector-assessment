@@ -100,6 +100,9 @@ func subscribeToEvent(svc inspector.Inspector, resourceArn string, topicArn stri
 		TopicArn:    aws.String(topicArn),
 	}
 
+	fmt.Println("about to execute SubscribeToEvent() with:")
+	fmt.Println(steInput.String())
+
 	result, err := svc.SubscribeToEvent(steInput)
 	if err != nil {
 		fmt.Println(err.Error())
