@@ -3,7 +3,9 @@ package helper
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,14 +14,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/inspector"
 )
 
-func createResourceGroup(svc inspector.Inspector) string {
+func createResourceGroup(svc inspector.Inspector, randomTag string) string {
 	// 1. create resource group input
 	log.Println("1. CreateResourceGroupInput started")
 	rgi := &inspector.CreateResourceGroupInput{
 		ResourceGroupTags: []*inspector.ResourceGroupTag{
 			{
 				Key:   aws.String("inspector"),
-				Value: aws.String("true"),
+				Value: aws.String(randomTag),
 			},
 		},
 	}
@@ -148,14 +150,22 @@ func SetTag(InstanceID *string, tag string) bool {
 	return true
 }
 
+// GetRandomTag will return a random tag everytime it is called
+func GetRandomTag() string {
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
+	randomTag := r1.Int()
+	return strconv.Itoa(randomTag)
+}
+
 // Begin will start entire execution
-func Begin(InstanceID string) {
+func Begin(InstanceID string, randomTag string) {
 	sess, _ := session.NewSession()
 
 	svc := inspector.New(sess)
 
 	// 1. create Resource Group
-	rgArn := createResourceGroup(*svc)
+	rgArn := createResourceGroup(*svc, randomTag)
 	fmt.Println("Resource group: ", rgArn)
 
 	// 2. create Assessment Target

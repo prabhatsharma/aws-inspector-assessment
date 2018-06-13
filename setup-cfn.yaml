@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Description: Generate resources that allow every ec2 to be inspected by inspector upon launch.
 Parameters:
   TOPICARN:
     Type: String

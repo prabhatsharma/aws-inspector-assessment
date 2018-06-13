@@ -21,18 +21,19 @@ type Detail struct {
 // HandleRequest lambda handler
 func HandleRequest(ctx context.Context, cEvent events.CloudWatchEvent) (string, error) {
 	log.Println("-----------Execution begins------------")
+	randomTag := helper.GetRandomTag()
 
 	var detail Detail
 	json.Unmarshal(cEvent.Detail, &detail)
 	log.Println("InstanceID: ", detail.InstanceID)
 
-	helper.SetTag(&detail.InstanceID, "true")
+	helper.SetTag(&detail.InstanceID, randomTag)
 	log.Println("SetTag:true complete")
 
 	time.Sleep(60 * time.Second) // sleep for 60 seconds allowing instance to start
-	log.Println("60 seconds sleep to allow ec2 to initialize complete")
+	log.Println("60 seconds sleep to allow ec2 initialization to complete")
 
-	helper.Begin(detail.InstanceID)
+	helper.Begin(detail.InstanceID, randomTag)
 	time.Sleep(60 * time.Second) // sleep for 60 seconds allowing scanning to begin
 	helper.SetTag(&detail.InstanceID, "false")
 
